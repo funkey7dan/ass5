@@ -366,16 +366,22 @@ void classMod(ClassList *myList)
 //checks if a student exists
 Student *studExists(ClassNode *thisClass, char studName[])
 {
-    StudNode *currentStud = thisClass->aClass->studList->head;
-    while(currentStud!=NULL)
-    {
-        if (strcmp(currentStud,studName)==0)
-            return currentStud;
-        else
-            currentStud = currentStud->next;
-    }
+ if(thisClass!=NULL)
+ {
+     StudNode *currentStud = thisClass->aClass->studList->head;
+     while (currentStud != NULL)
+     {
+         if(strcmp(currentStud, studName) == 0)
+         {
+             return currentStud;
+         }
+         else
+         {
+             currentStud = currentStud->next;
+         }
+     }
+ }
     return 0;
-
 }
 //if we add a new student
 
@@ -398,21 +404,31 @@ Student *newStud(char studName[], char studGrade[])
 //if we add an existing student
 void updtStud(Student *currentStud, char studGrade[])
 {
+
     currentStud->studGrade = atoi(studGrade);
 }
 
 //check if the student name and grade are in the format we wanted
 int isLglStud(char studName[], char studGrade[])
 {
-int errorCount=0;
-if (strlen(studGrade)>GRADELEN)
-    errorCount++;
-if (strlen(studName)>STUDLEN)
-    errorCount++;
-if (errorCount!=0)
-    return 0;
-else if (errorCount==0)
-    return 1;
+
+    int errorCount = 0;
+    if(strlen(studGrade) > GRADELEN)
+    {
+        errorCount++;
+    }
+    if(strlen(studName) > STUDLEN)
+    {
+        errorCount++;
+    }
+    if(errorCount != 0)
+    {
+        return 0;
+    }
+    else if(errorCount == 0)
+    {
+        return 1;
+    }
 }
 
 /*******************
@@ -424,7 +440,7 @@ else if (errorCount==0)
 void studMod(ClassList *myList)
 {
 
-    char userStr[INPUTLEN], studName[STUDLEN], studGrade[GRADELEN], classId[IDLEN];
+    char userStr[INPUTLEN], studName[STUDLEN], studGrade[GRADELEN], classId[IDLEN],tokenCpy[200];
     ClassNode *currentClass = NULL;
     Student *currentStud = NULL;
     char *token = NULL;
@@ -437,28 +453,29 @@ void studMod(ClassList *myList)
     if(token != NULL && strlen(token) <= STUDLEN)
     {
         //we get the student name from the user input
-        rmvSpaces(token, strlen(token));
-        strcpy(studName, token);
-
+        strcpy(tokenCpy,token);
+        rmvSpaces(tokenCpy, strlen(tokenCpy));
+        strcpy(studName, tokenCpy);
     }
     while (token != NULL)
     {
         //we get the class ID from the user input
         token = strtok(NULL, ",");
-        if(strlen(token) <= IDLEN)
+        if(token!= NULL && strlen(token) <= IDLEN)
         {
             //we get the classID from the user input
-            rmvSpaces(token, strlen(token));
-            strcpy(classId, token);
+            strcpy(tokenCpy,token);
+            rmvSpaces(tokenCpy, strlen(tokenCpy));
+            strcpy(classId, tokenCpy);
             currentClass = classExists(classId, myList);//if the class exists the value is its adress
-            currentStud = studExists(currentClass,studName);//if the student exists the value is his adress
+            currentStud = studExists(currentClass, studName);//if the student exists the value is his adress
         }
         token = strtok(NULL, ";");
-            //we get the student grade from the user input
-            rmvSpaces(token, strlen(token));
-            strcpy(studGrade, token);
-        token = strtok(NULL, "\n");
-
+        //we get the student grade from the user input
+        strcpy(tokenCpy,token);
+        rmvSpaces(tokenCpy, strlen(tokenCpy));
+        strcpy(studGrade, tokenCpy);
+        //token = strtok(NULL, "\n");
         if(isLglStud(studName, studGrade))
         {
             //if there such a class
@@ -467,17 +484,22 @@ void studMod(ClassList *myList)
                 //check if student exists
                 if(currentStud)
                 {
-                    updtStud(currentStud,studGrade);
+                    updtStud(currentStud, studGrade);
                     printf("Student %s updated on class %s%s with grade %s.\n",
-                           currentStud->studName,classId,currentClass->aClass->className,currentStud->studGrade);
+                           currentStud->studName, classId, currentClass->aClass->className, currentStud->studGrade);
                 }
-                //if a new student
+                    //if a new student
                 else if(!currentStud)
                 {
                     newStudNode(studName, studGrade, currentClass->aClass->studList);
                     printf("Student \"%s\" added to class \"%s %s\" with grade %s.\n",
-                       studName,classId,currentClass->aClass->className,studGrade);
+                           studName, classId, currentClass->aClass->className, studGrade);
                 }
+            }
+            else
+            {
+                printf("Error: invalid name, class number or grade.\n");
+                return;
             }
         }
         else
@@ -508,8 +530,6 @@ void menuSwitch(char userChoice, ClassList *myList)//func to invoke function acc
         case '0':
             exit(0);
         case '1':
-            /*char userStr[200];
-            fgets(userStr, 200, stdin);*///TODO remove me
             classMod(myList);
             break;
         case '2':
