@@ -15,7 +15,7 @@
 #define CLSNAMELEN 31
 #define INPUTLEN 200
 #define STUDLEN 21
-#define GRADELEN 3
+#define GRADELEN 4
 
 ///**************************************
 struct Student;
@@ -39,7 +39,6 @@ void printClass(ClassList* myList);
 void printAll(ClassList* myList);
 void menuFunc(void);
 void menuSwitch(char userChoice,ClassList* myList);
-void freeAll(ClassList* myList);
 
 
 
