@@ -20,6 +20,10 @@
 ///**************************************
 struct Student;
 typedef struct Student Student;
+struct StudNode;
+typedef struct StudNode StudNode;
+struct StudList;
+typedef struct StudList StudList;
 struct Class ;
 typedef struct Class Class; // class node  in the list with info about class and the next node
 struct ClassNode;
