@@ -16,6 +16,12 @@
  *  we add new nodes to the end of the list
  */
 
+/*******************
+ * Function Name: Main
+ *	Input:
+ *	Output:None
+ *	Function Operation:
+*******************/
 int main(void)
 {
     ClassList* myList = newClassList(); // we initialize our list

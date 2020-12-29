@@ -16,6 +16,7 @@
 #define INPUTLEN 200
 #define STUDLEN 21
 #define GRADELEN 4
+#define FLAG 999
 
 ///**************************************
 struct Student;
@@ -36,8 +37,9 @@ void classMod(ClassList* myList);
 void studMod(ClassList* myList);
 void studDlt(ClassList* myList);
 void printClass(ClassList* myList);
-void printAll(ClassList* myList);
+void printAll(ClassList *myList,int(*func)(ClassNode*),ClassNode *node);
 void menuFunc(void);
+void subMenuFunc(void );
 void menuSwitch(char userChoice,ClassList* myList);
 
 
