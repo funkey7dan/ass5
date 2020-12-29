@@ -37,10 +37,11 @@ void classMod(ClassList* myList);
 void studMod(ClassList* myList);
 void studDlt(ClassList* myList);
 void printClass(ClassList* myList);
-void printAll(ClassList *myList,int(*func)(ClassNode*),ClassNode *node);
+void printAll(ClassList *myList,int(*func)(ClassNode*));
 void menuFunc(void);
 void subMenuFunc(void );
 void menuSwitch(char userChoice,ClassList* myList);
+void freeClassList(ClassList *list);
 
 
 

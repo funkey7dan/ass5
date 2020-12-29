@@ -27,7 +27,7 @@ struct Class { // course with the name of the class and the id of the class, and
 //typedef struct Class Class; // class node  in the list with info about class and the next node
 struct ClassNode {
     Class *aClass; // the data of the class
-    Class *next; //the next class in the class list
+    ClassNode *next; //the next node in the class list
 };
 //typedef struct ClassNode ClassNode;
 struct ClassList {
@@ -53,7 +53,7 @@ void freeStud(Student *aStud);
 void freeStudList(StudList *studList);
 void freeClass(Class *aClass);
 void freeClassNode(ClassNode *classNode);
-void freeClassList(ClassList *list);
+
 StudList *newStudList(ClassList *myList);
 void removeStud(ClassNode *classNode, char studName[], ClassList *myList);
 int memberOf(char studName[], ClassList *myList);
@@ -70,6 +70,7 @@ int sumGrades(ClassNode *classNode);
 int avgGrade(ClassNode *classNode);
 int minGrade(ClassNode *classNode);
 int maxGrade(ClassNode *classNode);
+int studModChck(char userStr[INPUTLEN], ClassList *myList);
 
 /*******************
  * Function Name: menuFunc
@@ -227,11 +228,11 @@ void freeStud(Student *aStud)
 //free a student node
 void freeStudNode(StudNode *studNode)
 {
-
     if(studNode != NULL)
     {
         freeStud(studNode->aStud);
         freeStudNode(studNode->next);
+        free(studNode);
     }
 }
 
@@ -267,6 +268,7 @@ void freeClass(Class *aClass)
         free(aClass->classCode);
         free(aClass->className);
         freeStudList(aClass->studList);
+        free(aClass);
     }
 }
 
@@ -302,6 +304,7 @@ void freeClassList(ClassList *list)
         freeClassNode(list->head);
         free(list);
     }
+
 }
 
 /*******************
@@ -333,7 +336,6 @@ ClassList *newClassList(void)
 // creates a new Node
 ClassNode *newClassNode(Class *newClass, ClassList *myList)
 {
-
     ClassNode *node = (ClassNode *) malloc(sizeof(ClassNode)); // we allocate memory for our new node
     if(node == NULL)
     {
@@ -365,16 +367,20 @@ Class *newClass(const char *name, char *classId, ClassList *myList)
 {
 
     Class *newClass = (Class *) malloc(sizeof(Class));// we allocate memory for the newClass struct
-    newClass->className = (char *) malloc(strlen(name) + 1); //we allocate memory for the name of the class string
-    newClass->classCode = (char *) malloc(strlen(classId) + 1);//we allocate memory for the id of the class string
-    // we create a 10 student array
-    newClass->studList = newStudList(myList);// we create a new student list
+    //we allocate memory for the name of the class string
+    newClass->className = (char *) malloc(strlen(name) + 1);
+    //we allocate memory for the id of the class string
+    newClass->classCode = (char *) malloc(strlen(classId) + 1);
+    // we create a new student list
+    newClass->studList = newStudList(myList);
     if(newClass->className == NULL || newClass->classCode == NULL || newClass->studList == NULL)
     {
         freeClassList(myList);
         exit(1);
     }
+    newClass->classCode = (char *) realloc(newClass->classCode, strlen(classId) + 1);
     strcpy(newClass->classCode, classId);
+    newClass->className = (char *) realloc(newClass->className, strlen(name) + 1);
     strcpy(newClass->className, name);
     return newClass;
 }
@@ -398,6 +404,12 @@ int classCounter(ClassList *myList)
     }
     return counter;
 }
+/*******************
+ * Function Name:
+ *	Input:
+ *	Output:None
+ *	Function Operation:
+*******************/
 
 /*******************
  * Function Name:
@@ -411,9 +423,9 @@ int isLglCls(char classId[], char className[])
 
     int errorCount = 0;
     // if the given id is longer than allowed increment error counter
-    if(strlen(classId) > IDLEN)
+    if(strlen(classId) > IDLEN - 1 || strlen(classId) < IDLEN - 1)
     {
-        errorCount++;
+        return 0;
     }
     // if the given name is longer than allowed increment error counter
     if(strcmp(className, "-1") != 0)
@@ -431,19 +443,19 @@ int isLglCls(char classId[], char className[])
             }
         }
     }
-    for (int i = 0; i < strlen(classId); i++)//TODO remove loop
-    {
+
         // if the given id isn't only digits increment error counter
         if(isDigitLoop(classId) == 0)
         {
             errorCount++;
         }
-    }
+
     if(errorCount)
     {
         return 0;
-        //if there were no errors return 1
+
     }
+        //if there were no errors return 1
     else if(errorCount == 0)
     {
         return 1;
@@ -490,7 +502,8 @@ int firstAlpha(char str[], int len)
 
     for (int i = 0; i < len; ++i)
     {
-        if(isalnum(str[ i ])) //if we find a letter we return its location
+        //if we find a letter we return its location
+        if(isalnum(str[ i ]) || str[ i ] == ':' || str[ i ] == ',' || str[ i ] == ';')
         {
             return i;
         }
@@ -575,7 +588,7 @@ void classMod(ClassList *myList)
         rmvSpaces(userStr, strlen(userStr));
     }// we remove spaces from the start of the string
     token = strtok(userStr, " ");// we break the string into part using spaces
-    if(token != NULL)
+    if(token != NULL && strlen(token) < IDLEN)
     {
         strcpy(classId, token);
         token = strtok(NULL, "\n");// we break the string into part using spaces
@@ -610,6 +623,8 @@ void classMod(ClassList *myList)
                 // we create a new pointer to point to the existing class
                 ClassNode *existingClass = NULL;
                 existingClass = classExists(classId, myList);
+                existingClass->aClass->className = (char *) realloc(existingClass->aClass->className,
+                                                                    strlen(className) + 1);
                 strcpy(existingClass->aClass->className, className);
                 printf("Class \"%s %s\" updated.\n", classId, className);
             }
@@ -635,16 +650,16 @@ Student *studExists(ClassNode *thisClass, char studName[])
 
     if(thisClass != NULL)
     {
-        StudNode *currentStud = thisClass->aClass->studList->head;
-        while (currentStud != NULL)
+        StudNode *currentStudNode = thisClass->aClass->studList->head;
+        while (currentStudNode != NULL)
         {
-            if(strcmp(currentStud->aStud->studName, studName) == 0)
+            if(strcmp(currentStudNode->aStud->studName, studName) == 0)
             {
-                return currentStud;
+                return currentStudNode->aStud;
             }
             else
             {
-                currentStud = currentStud->next;
+                currentStudNode = currentStudNode->next;
             }
         }
     }
@@ -671,7 +686,6 @@ int memberOf(char studName[], ClassList *myList)
             counter++;
         }
         currentNode = currentNode->next;
-        //if we reached the tail we reached the end
     }
     return counter;
 }
@@ -685,15 +699,17 @@ int memberOf(char studName[], ClassList *myList)
 //if we add a new student
 Student *newStud(char studName[], char studGrade[], ClassList *myList)
 {
-
-    Student *newStud = (Student *) malloc(sizeof(Student));// we allocate memory for the newStud struct
-    newStud->studName = (char *) malloc(strlen(studName) + 1); //we allocate memory for the name of the stud string
-    newStud->studGrade = malloc(sizeof(int));
-    if(newStud->studName == NULL || newStud->studGrade == NULL)
+    // we allocate memory for the newStud struct
+    Student *newStud = (Student *) malloc(sizeof(Student));
+    //we allocate memory for the name of the stud string
+    newStud->studName = (char *) malloc(strlen(studName) + 1);
+    //newStud->studGrade = (int *)malloc(sizeof(int));
+    if(newStud->studName == NULL || newStud == NULL)
     {
         freeClassList(myList);
         exit(1);
     }
+    newStud->studName = (char *) realloc(newStud->studName, strlen(studName) + 1);
     strcpy(newStud->studName, studName);
     newStud->studGrade = atoi(studGrade);
     return newStud;
@@ -780,12 +796,82 @@ int isLglInput(char userStr[INPUTLEN])
     while (token != NULL)
     {
         token = strtok(NULL, ",");
+
         if(token != NULL)
         {
+            rmvSpaces(token, strlen(token));
             if((isLglCls(token, "-1")) == 0)
             {
                 error++;
             }
+        }
+    }
+    if(error == 0)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+/*******************
+ * Function Name: studentMod
+ *	Input:
+ *	Output:None
+ *	Function Operation: adds or updates a student and his grades
+*******************/
+int studModChck(char userStr[INPUTLEN], ClassList *myList)
+{
+
+    int error = 0;
+    char studName[STUDLEN], studGrade[GRADELEN], classId[IDLEN];
+    char *token = NULL;
+    ClassNode *currentClass = NULL;
+    Student *currentStud = NULL;
+    if(userStr[ 0 ] == ':')
+    {
+        return 0;
+    }
+    token = strtok(userStr, ":");
+    if(token == NULL)
+    {
+        //if there is no student name given
+        return 0;
+    }
+    strcpy(studName, token);
+    // we loop through the inputs
+    while (token != NULL)
+    {
+        //we get the class ID from the user input
+        token = strtok(NULL, ",");
+        if(token == NULL || strcmp(token, "\n") == 0)
+        {
+            //if there is no classes
+            break;
+        }
+        if(token != NULL && strlen(token) <= IDLEN)
+        {
+            //we get the classID from the user input
+            rmvSpaces(token, strlen(token));
+            strcpy(classId, token);
+        }
+        if(!(isLglCls(classId, "-1")))
+        {
+            error++;
+        }
+        if(!classExists(classId, myList))
+        {
+            error++;
+        }
+        token = strtok(NULL, ";");
+        //we get the student grade from the user input
+        strcpy(studGrade, token);
+        rmvSpaces(studGrade, strlen(studGrade));
+        if(!(isLglStud(studName, studGrade)))
+        {
+            error++;
         }
     }
     if(error == 0)
@@ -815,6 +901,13 @@ void studMod(ClassList *myList)
     fgets(userStr, INPUTLEN, stdin);
     // we remove spaces from the start of the string
     rmvSpaces(userStr, strlen(userStr));
+    strcpy(str1, userStr);
+    // we check all the string before any actions
+    if(!studModChck(str1, myList))
+    {
+        printf("Error: invalid name, class number or grade.\n");
+        return;
+    }
     token = strtok(userStr, "\n");
     token = strtok(userStr, ":");
     if(token != NULL && strlen(token) <= STUDLEN)
@@ -845,19 +938,12 @@ void studMod(ClassList *myList)
         //we get the student grade from the user input
         strcpy(tokenCpy, token);
         rmvSpaces(tokenCpy, strlen(tokenCpy));
-        //strncpy(studGrade, tokenCpy, 4);
         strcpy(studGrade, tokenCpy);
-        //token = strtok(NULL, "\n");
-        if(isLglStud(studName, studGrade))
-        {
-            //if there such a class
-            if((currentClass))
-            {
-                //check if student exists
+        //check if student exists
                 if(currentStud)
                 {
                     updtStud(currentStud, studGrade);
-                    printf("Student %s updated on class %s%s with grade %s.\n",
+                    printf("Student %s updated on class %s%s with grade %d.\n",
                            currentStud->studName, classId, currentClass->aClass->className, currentStud->studGrade);
                 }
                     //if a new student
@@ -867,18 +953,6 @@ void studMod(ClassList *myList)
                     printf("Student \"%s\" added to class \"%s %s\" with grade %s.\n",
                            studName, classId, currentClass->aClass->className, studGrade);
                 }
-            }
-            else
-            {
-                printf("Error: invalid name, class number or grade.\n");
-                return;
-            }
-        }
-        else
-        {
-            printf("Error: invalid name, class number or grade.\n");
-            return;
-        }
     }
 }
 
@@ -947,6 +1021,7 @@ void removeStud(ClassNode *classNode, char studName[], ClassList *myList)
             if(currentNode->next == NULL)
             {
                 freeStud(currentNode->aStud);
+                free(currentNode);
                 classNode->aClass->studList->head = NULL;
                 return;
             }
@@ -955,6 +1030,7 @@ void removeStud(ClassNode *classNode, char studName[], ClassList *myList)
             {
                 classNode->aClass->studList->head = currentNode->next;
                 freeStud(currentNode->aStud);
+                free(currentNode);
                 return;
             }
         }
@@ -965,7 +1041,8 @@ void removeStud(ClassNode *classNode, char studName[], ClassList *myList)
             if(currentNode->next->next == NULL)
             {
                 classNode->aClass->studList->tail = currentNode;
-                freeStud(currentNode->next->aStud);
+                freeStud(currentNode->next);
+                free(currentNode->next);
                 currentNode->next = NULL;
                 return;
             }
@@ -975,6 +1052,7 @@ void removeStud(ClassNode *classNode, char studName[], ClassList *myList)
                 //we store the next next node adress in a temp variable to preserve it
                 temp = currentNode->next->next;
                 freeStud(currentNode->next->aStud);
+                free(currentNode->next->aStud);
                 currentNode->next = temp;
                 return;
             }
@@ -1026,13 +1104,13 @@ int numClsRmvFrom(char userStr[INPUTLEN])
  *	Function Operation:
 *******************/
 //remove student from classes given by user
-void studDlt(ClassList *myList) //TODO check length
+void studDlt(ClassList *myList)
 {
 
     char userStr[INPUTLEN], studName[STUDLEN], classId[IDLEN], tokenCpy[STUDLEN], myStr1[INPUTLEN], myStr2[INPUTLEN];
     char *token = NULL;
     ClassNode *currentClass = NULL;
-    StudNode *currentStud = NULL;
+    Student *currentStud = NULL;
     //get input from user
     fgets(userStr, INPUTLEN, stdin);
     // we remove spaces from the start of the string
@@ -1081,7 +1159,7 @@ void studDlt(ClassList *myList) //TODO check length
         //if the student exists in this class the value is his adress
         currentStud = studExists(currentClass, studName);
         removeStud(currentClass, studName, myList);
-        printf("Student \"%s\" removed from class \"%s %s\".",
+        printf("Student \"%s\" removed from class \"%s %s\".\n",
                studName, classId, currentClass->aClass->className);
         token = strtok(NULL, ",");
     }
@@ -1145,9 +1223,10 @@ void printClassLoop(Class *class)
     StudNode *currentStud = class->studList->head;
     if(currentStud == NULL)
     {
-        printf("Class \"%s %s\" has no students.", class->classCode, class->className);
+        printf("Class \"%s %s\" has no students.\n", class->classCode, class->className);
+        return;
     }
-    printf("Class \"%s, %d\" students:\n", class->classCode, class->className);
+    printf("Class \"%s %s\" students:\n", class->classCode, class->className);
     while (currentStud != NULL)
     {
         printf("%s, %d\n", currentStud->aStud->studName, currentStud->aStud->studGrade);
@@ -1242,7 +1321,10 @@ int avgGrade(ClassNode *classNode)
 {
 
     int avg = 0;
-    avg = sumGrades(classNode) / countGrades(classNode);
+    if(countGrades(classNode) != 0)
+    {
+        avg = sumGrades(classNode) / countGrades(classNode);
+    }
     return avg;
 }
 
@@ -1296,30 +1378,22 @@ int maxGrade(ClassNode *classNode)
  *	Output:None
  *	Function Operation:
 *******************/
-void printAll(ClassList *myList, int(*func)(ClassNode *), ClassNode *node)
+void printAll(ClassList *myList, int(*func)(ClassNode *))
 {
 
-    if(node == myList->tail)
+    ClassNode *node = myList->head;
+    while (node != NULL)
     {
-        if(node->aClass->studList == NULL)
+        if(node->aClass->studList->head == NULL)
         {
             printf("Class \"%s %s\" has no students.\n", node->aClass->classCode, node->aClass->className);
-            return;
+            node = node->next;
         }
-        printf("%s %s,%d\n", node->aClass->classCode, node->aClass->className, func(node));
-        return;
-    }
-    else
-    {
-        if(node->aClass->studList == NULL)
+        else
         {
-            printf("Class \"%s %s\" has no students.\n", node->aClass->classCode, node->aClass->className);
-            printAll(myList, func, node->next);
-            return;
+            printf("%s %s, %d\n", node->aClass->classCode, node->aClass->className, func(node));
+            node = node->next;
         }
-        printAll(myList, func, node->next);
-        printf("%s %s,%d\n", node->aClass->classCode, node->aClass->className, func(node));
-        return;
     }
 }
 
@@ -1341,19 +1415,19 @@ void subSwitch(char userChoice, ClassList *myList)
     switch (userChoice)
     {
         case 'a':
-            printAll(myList, avgPtr, myList->head);
+            printAll(myList, avgPtr);//, myList->head);
             break;
         case 'b':
-            printAll(myList, maxPtr, myList->head);
+            printAll(myList, maxPtr);//, myList->head);
             break;
         case 'c':
-            printAll(myList, minPtr, myList->head);
+            printAll(myList, minPtr);//, myList->head);
             break;
         case 'd':
-            printAll(myList, sumPtr, myList->head);
+            printAll(myList, sumPtr);//, myList->head);
             break;
         case 'e':
-            printAll(myList, countPtr, myList->head);
+            printAll(myList, countPtr);//, myList->head);
             break;
         case '0':
             break;
@@ -1403,7 +1477,7 @@ void menuSwitch(char userChoice, ClassList *myList)//func to invoke function acc
             break;
         default:
             printf("Error: unrecognized operation.\n");
-            printf("Select the next operation (insert 6 for the entire menu):\n");
+            //printf("Select the next operation (insert 6 for the entire menu):\n");
             break;
     }
 }
